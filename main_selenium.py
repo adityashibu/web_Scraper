@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 # URL of the webpage
-url = "https://www.wtm.com/atm/en-gb/exhibitor-directory.html?refinementList%5B0%5D%5B0%5D=exhibitorFilters.Regions%20Operating%20In.lvl0%3Aid-677864&refinementList%5B1%5D%5B0%5D=exhibitorFilters.Regions%20Operating%20In.lvl1%3Aid-677865"
+url = "https://www.wtm.com/atm/en-gb/exhibitor-directory.html#/"
 
 # Create a new instance of the Firefox driver
 driver = webdriver.Firefox()
@@ -14,12 +14,13 @@ driver = webdriver.Firefox()
 driver.get(url)
 
 # Wait for the JavaScript to load the dynamic content
-time.sleep(5)
+time.sleep(10)  # Increase the delay if necessary
 
 # Get the scroll height
 last_height = driver.execute_script("return document.body.scrollHeight")
 
 h3_texts = []
+emails = []
 
 while True:
     # Scroll down to the bottom
@@ -31,17 +32,23 @@ while True:
     # Parse the HTML of the page with BeautifulSoup
     soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-    # Find all h3 tags with the class "text-center-mobile wrap-word"
-    h3_tags = soup.find_all('h3', class_='text-center-mobile wrap-word')
+    # Find all div tags with the specified class
+    div_tags = soup.find_all('div', class_='directory-item-feature-toggled exhibitor-category row')
 
-    # Extract the text from these tags
-    new_h3_texts = [tag.get_text() for tag in h3_tags]
+    for div in div_tags:
+        # Find the h3 tag and the email within this div
+        h3_tag = div.find('h3', class_='text-center-mobile wrap-word')
+        email_tag = div.find('a', {'aria-label': 'Company Email'})
 
-    # If no new h3 tags were found, we've reached the end of the dynamic content
-    if set(new_h3_texts).issubset(set(h3_texts)):
-        break
+        if h3_tag:
+            h3_texts.append(h3_tag.get_text())
+            if email_tag:
+                emails.append(email_tag['href'].replace('mailto:', ''))
+            else:
+                emails.append('')  # Add an empty string if no email is found
 
-    h3_texts = new_h3_texts
+    # Wait for the page to load new content
+    time.sleep(5)
 
     # Calculate new scroll height and compare with last scroll height
     new_height = driver.execute_script("return document.body.scrollHeight")
@@ -50,8 +57,10 @@ while True:
     last_height = new_height
 
 # Create a DataFrame and save to an Excel file
-df = pd.DataFrame(h3_texts, columns=['Title'])
+df = pd.DataFrame({'Title': h3_texts, 'Company Email': emails})
 df.to_excel('output.xlsx', index=False)
 
 # Close the browser
 driver.quit()
+
+print("Excel file has been created with the extracted titles.")
