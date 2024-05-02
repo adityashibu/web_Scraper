@@ -3,7 +3,7 @@ from selenium import webdriver
 import pandas as pd
 import time
 
-url = 'https://www.wtm.com/atm/en-gb/exhibitor-directory.html?refinementList%5B0%5D%5B0%5D=exhibitorFilters.Regions%20Operating%20In.lvl0%3Aid-677864&refinementList%5B0%5D%5B1%5D=sponsoredCategory.id%3A677866&refinementList%5B1%5D%5B0%5D=exhibitorFilters.Regions%20Operating%20In.lvl1%3Aid-677865&refinementList%5B1%5D%5B1%5D=sponsoredCategory.id%3A677866&refinementList%5B2%5D%5B0%5D=sponsoredCategory.id%3A677866&refinementList%5B2%5D%5B1%5D=exhibitorFilters.Regions%20Operating%20In.lvl2%3Aid-677866#/'
+url = 'https://www.wtm.com/atm/en-gb/exhibitor-directory.html?refinementList%5B0%5D%5B0%5D=sponsoredCategory.id%3A677789&refinementList%5B0%5D%5B1%5D=exhibitorFilters.Company%20Activity.lvl0%3Aid-677789'
 
 def scrape_exhibitor_info(url, class_name):
     # Create a new instance of the Firefox driver
