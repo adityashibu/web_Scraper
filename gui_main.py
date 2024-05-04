@@ -1,10 +1,12 @@
+import tkinter as tk
+from tkinter import filedialog, ttk
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import pandas as pd
 import time
+import threading
 
-url = 'https://www.wtm.com/atm/en-gb/exhibitor-directory.html?refinementList%5B0%5D%5B0%5D=exhibitorFilters.Regions%20Operating%20In.lvl0%3Aid-677939&refinementList%5B0%5D%5B1%5D=sponsoredCategory.id%3A677940&refinementList%5B1%5D%5B0%5D=sponsoredCategory.id%3A677940&refinementList%5B1%5D%5B1%5D=exhibitorFilters.Regions%20Operating%20In.lvl1%3Aid-677940'
-
+# Function to perform web scraping
 def scrape_exhibitor_info(url, class_name):
     # Create a new instance of the Firefox driver
     driver = webdriver.Firefox()
@@ -134,25 +136,79 @@ def scrape_exhibitor_info(url, class_name):
     df = pd.DataFrame({'Company Name': company_names, 'Company Email': emails, 'Company Website': websites, 'Company Phone': phones})
     return df
 
+# Function to start scraping process
+def start_scraping():
+    global progress_bar, submit_button, url_entry
 
-# URLs and class names for scraping
-urls_and_classes = [
-    (url, 'directory-item-feature-toggled exhibitor-category row'),
-    (url, 'directory-item directory-item-feature-toggled exhibitor-category')
-]
+    # Disable submit button
+    submit_button.config(state='disabled')
 
-# Initialize an empty list to store DataFrames
-dfs = []
+    # Get URL from entry
+    url = url_entry.get()
 
-# Loop through each URL and class name
-for url, class_name in urls_and_classes:
-    df = scrape_exhibitor_info(url, class_name)
-    dfs.append(df)
+    # Perform scraping in a separate thread
+    threading.Thread(target=perform_scraping, args=(url,)).start()
 
-# Concatenate DataFrames
-final_df = pd.concat(dfs, ignore_index=True)
+# Function to perform scraping
+def perform_scraping(url):
+    global progress_bar, submit_button
 
-# Save the final DataFrame to an Excel file
-final_df.to_excel('output_combined.xlsx', index=False)
+    # URLs and class names for scraping
+    urls_and_classes = [
+        (url, 'directory-item-feature-toggled exhibitor-category row'),
+        (url, 'directory-item directory-item-feature-toggled exhibitor-category')
+    ]
 
-print("Excel file has been created with the extracted company information.")
+    # Initialize an empty list to store DataFrames
+    dfs = []
+
+    # Loop through each URL and class name
+    for url, class_name in urls_and_classes:
+        df = scrape_exhibitor_info(url, class_name)
+        dfs.append(df)
+
+    # Concatenate DataFrames
+    final_df = pd.concat(dfs, ignore_index=True)
+
+    # Save the final DataFrame to an Excel file
+    save_file(final_df)
+
+# Function to save DataFrame to Excel file
+def save_file(df):
+    global submit_button
+
+    # Enable submit button
+    submit_button.config(state='normal')
+
+    # Ask user for file save location
+    file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+
+    # Check if user canceled save operation
+    if file_path == "":
+        return
+
+    # Save DataFrame to Excel file
+    df.to_excel(file_path, index=False)
+
+    # Inform user that file has been saved
+    tk.messagebox.showinfo("File Saved", "Excel file has been created with the extracted company information.")
+
+# Create GUI
+root = tk.Tk()
+root.title("Web Scraping Tool")
+
+# URL Entry
+url_label = tk.Label(root, text="Enter URL:")
+url_label.grid(row=0, column=0, padx=5, pady=5)
+url_entry = tk.Entry(root, width=50)
+url_entry.grid(row=0, column=1, columnspan=2, padx=5, pady=5)
+
+# Submit Button
+submit_button = tk.Button(root, text="Submit", command=start_scraping)
+submit_button.grid(row=0, column=3, padx=5, pady=5)
+
+# Progress Bar
+progress_bar = ttk.Progressbar(root, orient="horizontal", length=200, mode="determinate")
+progress_bar.grid(row=1, column=0, columnspan=4, padx=5, pady=5)
+
+root.mainloop()
